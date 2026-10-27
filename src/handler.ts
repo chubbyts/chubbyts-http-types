@@ -1,3 +1,3 @@
-import type { Response, ServerRequest } from './message.js';
+import type { Attributes, Response, ServerRequest } from './message.js';
 
-export type Handler = (request: ServerRequest) => Promise<Response>;
+export type Handler<A extends Attributes = Attributes> = (request: ServerRequest<A>) => Promise<Response>;

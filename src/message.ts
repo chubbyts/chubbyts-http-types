@@ -1,108 +1,90 @@
-import type { Duplex } from 'stream';
-
-export type Query = { [key: string]: Query | Array<Query> | string };
+export type Query = { readonly [key: string]: Query | ReadonlyArray<Query | string> | string };
 
 export type Uri = {
-  schema: string;
-  userInfo: string;
-  host: string;
-  port: number | undefined;
-  path: string;
-  query: Query;
-  fragment: string;
+  readonly scheme: string;
+  readonly userInfo: string;
+  readonly host: string;
+  readonly port: number | undefined;
+  readonly path: string;
+  /** The raw query string (without `?`), percent-encoded as received, parsed by `getQueryParams`. */
+  readonly query: string;
+  readonly fragment: string;
 };
+
+export type Headers = Readonly<Record<string, ReadonlyArray<string>>>;
+
+/**
+ * The body, read once by iterating its chunks: a Node.js stream (`Readable`, `IncomingMessage`, `fs.ReadStream`) and a
+ * web `ReadableStream` already are one. The chunks have to be bytes (`Uint8Array`, `Buffer`), never objects.
+ */
+export type Body = AsyncIterable<Uint8Array>;
 
 export type Message = {
-  protocolVersion: string;
-  headers: Record<string, Array<string>>;
-  body: Duplex;
+  readonly protocolVersion: string;
+  readonly headers: Headers;
+  readonly body: Body;
 };
 
-export type Method = 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE';
+export type Method =
+  | 'ACL' // RFC 3744 (WebDAV Access Control)
+  | 'BASELINE-CONTROL' // RFC 3253 (WebDAV Versioning)
+  | 'BIND' // RFC 5842 (WebDAV Bindings)
+  | 'CHECKIN' // RFC 3253
+  | 'CHECKOUT' // RFC 3253
+  | 'CONNECT' // RFC 9110
+  | 'COPY' // RFC 4918 (WebDAV)
+  | 'DELETE' // RFC 9110
+  | 'GET' // RFC 9110
+  | 'HEAD' // RFC 9110
+  | 'LABEL' // RFC 3253
+  | 'LINK' // RFC 2068 (historic)
+  | 'LOCK' // RFC 4918
+  | 'MERGE' // RFC 3253
+  | 'MKACTIVITY' // RFC 3253
+  | 'MKCALENDAR' // RFC 4791 (CalDAV)
+  | 'MKCOL' // RFC 4918
+  | 'MKREDIRECTREF' // RFC 4437 (WebDAV Redirect Refs)
+  | 'MKWORKSPACE' // RFC 3253
+  | 'MOVE' // RFC 4918
+  | 'OPTIONS' // RFC 9110
+  | 'ORDERPATCH' // RFC 3648 (WebDAV Ordered Collections)
+  | 'PATCH' // RFC 5789
+  | 'POST' // RFC 9110
+  | 'PRI' // RFC 9113 (HTTP/2 connection preface only)
+  | 'PROPFIND' // RFC 4918
+  | 'PROPPATCH' // RFC 4918
+  | 'PUT' // RFC 9110
+  | 'QUERY' // IETF draft, not yet a final RFC
+  | 'REBIND' // RFC 5842
+  | 'REPORT' // RFC 3253
+  | 'SEARCH' // RFC 5323 (WebDAV Search)
+  | 'TRACE' // RFC 9110
+  | 'UNBIND' // RFC 5842
+  | 'UNCHECKOUT' // RFC 3253
+  | 'UNLINK' // RFC 2068 (historic)
+  | 'UNLOCK' // RFC 4918
+  | 'UPDATE' // RFC 3253
+  | 'UPDATEREDIRECTREF' // RFC 4437
+  | 'VERSION-CONTROL' // RFC 3253
+  | (string & {});
 
 export type Request = {
-  method: Method;
-  uri: Uri;
+  readonly method: Method;
+  readonly uri: Uri;
+  /**
+   * Aborted when the request is no longer needed: the client disconnected (server) or the caller cancelled (client).
+   * Created and aborted by the bridge, passed on to e.g. `fetch` or database calls by handlers and middlewares.
+   */
+  readonly signal: AbortSignal;
 } & Message;
-
-export const statusMap = new Map([
-  [100, 'Continue'],
-  [101, 'Switching Protocols'],
-  [102, 'Processing'],
-  [103, 'Early Hints'],
-  [110, 'Response is Stale'],
-  [111, 'Revalidation Failed'],
-  [112, 'Disconnected Operation'],
-  [113, 'Heuristic Expiration'],
-  [199, 'Miscellaneous Warning'],
-  [200, 'OK'],
-  [201, 'Created'],
-  [202, 'Accepted'],
-  [203, 'Non-Authoritative Information'],
-  [204, 'No Content'],
-  [205, 'Reset Content'],
-  [206, 'Partial Content'],
-  [207, 'Multi-Status'],
-  [208, 'Already Reported'],
-  [214, 'Transformation Applied'],
-  [226, 'IM Used'],
-  [299, 'Miscellaneous Persistent Warning'],
-  [300, 'Multiple Choices'],
-  [301, 'Moved Permanently'],
-  [302, 'Found'],
-  [303, 'See Other'],
-  [304, 'Not Modified'],
-  [305, 'Use Proxy'],
-  [306, 'Switch Proxy'],
-  [307, 'Temporary Redirect'],
-  [308, 'Permanent Redirect'],
-  [400, 'Bad Request'],
-  [401, 'Unauthorized'],
-  [402, 'Payment Required'],
-  [403, 'Forbidden'],
-  [404, 'Not Found'],
-  [405, 'Method Not Allowed'],
-  [406, 'Not Acceptable'],
-  [407, 'Proxy Authentication Required'],
-  [408, 'Request Timeout'],
-  [409, 'Conflict'],
-  [410, 'Gone'],
-  [411, 'Length Required'],
-  [412, 'Precondition Failed'],
-  [413, 'Payload Too Large'],
-  [414, 'URI Too Long'],
-  [415, 'Unsupported Media Type'],
-  [416, 'Range Not Satisfiable'],
-  [417, 'Expectation Failed'],
-  [418, "I'm a teapot"],
-  [421, 'Misdirected Request'],
-  [422, 'Unprocessable Entity'],
-  [423, 'Locked'],
-  [424, 'Failed Dependency'],
-  [425, 'Too Early'],
-  [426, 'Upgrade Required'],
-  [428, 'Precondition Required'],
-  [429, 'Too Many Requests'],
-  [431, 'Request Header Fields Too Large'],
-  [451, 'Unavailable For Legal Reasons'],
-  [500, 'Internal Server Error'],
-  [501, 'Not Implemented'],
-  [502, 'Bad Gateway'],
-  [503, 'Service Unavailable'],
-  [504, 'Gateway Timeout'],
-  [505, 'HTTP Version Not Supported'],
-  [506, 'Variant Also Negotiates'],
-  [507, 'Insufficient Storage'],
-  [508, 'Loop Detected'],
-  [510, 'Not Extended'],
-  [511, 'Network Authentication Required'],
-]);
 
 export type Response = {
-  status: number;
-  reasonPhrase: string;
+  readonly status: number;
+  readonly reasonPhrase: string;
 } & Message;
 
-export type ServerRequest = Request & {
-  attributes: Record<string, unknown>;
+export type Attributes = Readonly<Record<string, unknown>>;
+
+export type ServerRequest<A extends Attributes = Attributes> = Request & {
+  readonly attributes: Readonly<A>;
 };
