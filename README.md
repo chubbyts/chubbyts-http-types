@@ -44,7 +44,7 @@ interchangeable, any implementation of the factories and helpers creates and cha
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-http-types][1].
 
 ```sh
-npm i @chubbyts/chubbyts-http-types@^4.1.0
+npm i @chubbyts/chubbyts-http-types@^4.2.0
 ```
 
 ## Usage
