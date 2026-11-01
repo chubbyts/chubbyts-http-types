@@ -2,8 +2,13 @@ import type { Body, Method, Request, Response, ServerRequest, Uri } from './mess
 
 export type UriFactory = (uri: string) => Uri;
 
-export type StreamFactory = (content: string) => Body;
-export type StreamFromFileFactory = (filename: string) => Body;
+export type BodyFactory = (content: string) => Body;
+export type BodyFromFileFactory = (filename: string) => Body;
+
+/** @deprecated use `BodyFactory`, the body is not a stream anymore */
+export type StreamFactory = BodyFactory;
+/** @deprecated use `BodyFromFileFactory`, the body is not a stream anymore */
+export type StreamFromFileFactory = BodyFromFileFactory;
 
 /**
  * A request with protocol version `1.1`, no headers, an empty body and a signal of its own (never shared between

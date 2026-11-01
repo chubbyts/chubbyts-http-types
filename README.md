@@ -28,7 +28,7 @@ interchangeable, any implementation of the factories and helpers creates and cha
 | Module            | Exports                                                                                                                     |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `message`         | `Uri`, `Query`, `Headers`, `Body`, `Message`, `Method`, `Request`, `Attributes`, `ServerRequest<A>`, `Response`             |
-| `message-factory` | `UriFactory`, `StreamFactory`, `StreamFromFileFactory`, `RequestFactory`, `ServerRequestFactory`, `ResponseFactory`         |
+| `message-factory` | `UriFactory`, `BodyFactory`, `BodyFromFileFactory`, `RequestFactory`, `ServerRequestFactory`, `ResponseFactory`             |
 | `message-helper`  | `HeaderValue`, `MessageHelpers`, `RequestHelpers`, `ServerRequestHelpers`, `ResponseHelpers`, `UriHelpers`, `CookieOptions` |
 | `handler`         | `Handler<A>`: `(request: ServerRequest<A>) => Promise<Response>`                                                            |
 | `middleware`      | `Middleware<I, O = I>`: `(request: ServerRequest<I>, handler: Handler<O>) => Promise<Response>`                             |
@@ -44,7 +44,7 @@ interchangeable, any implementation of the factories and helpers creates and cha
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-http-types][1].
 
 ```sh
-npm i @chubbyts/chubbyts-http-types@^4.0.0
+npm i @chubbyts/chubbyts-http-types@^4.1.0
 ```
 
 ## Usage
@@ -89,14 +89,14 @@ and `body`.
 
 ### Factories
 
-| Type                    | Signature                                               |
-| ----------------------- | ------------------------------------------------------- |
-| `UriFactory`            | `(uri: string) => Uri`                                  |
-| `StreamFactory`         | `(content: string) => Body`                             |
-| `StreamFromFileFactory` | `(filename: string) => Body`                            |
-| `RequestFactory`        | `(method: Method, uri: string \| Uri) => Request`       |
-| `ServerRequestFactory`  | `(method: Method, uri: string \| Uri) => ServerRequest` |
-| `ResponseFactory`       | `(status: number, reasonPhrase?: string) => Response`   |
+| Type                   | Signature                                               |
+| ---------------------- | ------------------------------------------------------- |
+| `UriFactory`           | `(uri: string) => Uri`                                  |
+| `BodyFactory`          | `(content: string) => Body`                             |
+| `BodyFromFileFactory`  | `(filename: string) => Body`                            |
+| `RequestFactory`       | `(method: Method, uri: string \| Uri) => Request`       |
+| `ServerRequestFactory` | `(method: Method, uri: string \| Uri) => ServerRequest` |
+| `ResponseFactory`      | `(status: number, reasonPhrase?: string) => Response`   |
 
 Created messages have the protocol version `1.1`, no headers and an empty body. Each request gets a signal of its own
 (a shared one would pile up the listeners), a given `Uri` is used as is, a server request starts without attributes. The
@@ -192,18 +192,18 @@ A handler turns a server request into a response, its dependencies get injected:
 
 ```ts
 import type { Handler } from '@chubbyts/chubbyts-http-types/handler';
-import type { ResponseFactory, StreamFactory } from '@chubbyts/chubbyts-http-types/message-factory';
+import type { BodyFactory, ResponseFactory } from '@chubbyts/chubbyts-http-types/message-factory';
 import type { ResponseHelpers } from '@chubbyts/chubbyts-http-types/message-helper';
 
 export const createPingHandler = (
   responseFactory: ResponseFactory,
-  streamFactory: StreamFactory,
+  bodyFactory: BodyFactory,
   responseHelpers: ResponseHelpers,
 ): Handler => {
   return async () => {
     const response = responseHelpers.withBody(
       responseFactory(200),
-      streamFactory(JSON.stringify({ datetime: new Date().toISOString() })),
+      bodyFactory(JSON.stringify({ datetime: new Date().toISOString() })),
     );
 
     return responseHelpers.withHeader(response, 'content-type', 'application/json');
@@ -293,21 +293,22 @@ const app: Handler<RequestIdAttributes> = (request) => m1(request, (userRequest)
 
 ## Upgrade from 3.x
 
-| 3.x                                                              | 4.x                                                                                                     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| node >= 18                                                       | node >= 22                                                                                              |
-| `import … from '@chubbyts/chubbyts-http-types/dist/message'`     | `import … from '@chubbyts/chubbyts-http-types/message'` (without `dist/`)                               |
-| `uri.schema`                                                     | `uri.scheme` (like PSR-7 `getScheme()`)                                                                 |
-| `statusMap.get(status)`                                          | `STATUS_CODES[status]` from `node:http`                                                                 |
-| mutable messages                                                 | all properties `readonly`, e.g. `withAttribute(request, 'userId', 'user-1')` instead of an assignment   |
-| `Method` limited to `CONNECT`, `DELETE`, `GET`, … `TRACE`        | any method, the known ones get autocompleted                                                            |
-| `Query` arrays contain only nested queries                       | `Query` arrays contain strings and nested queries (`key[]=value`)                                       |
-| `uri.query` parsed (`Query`)                                     | `uri.query` raw string, use `requestHelpers.getQueryParams` and `withQueryParams`                       |
-| `body` is a `Duplex`, a handler writes into `response.body`      | `body` is an `AsyncIterable<Uint8Array>`, a handler sets it with `withBody(response, streamFactory(…))` |
-| `StreamFromResourceFactory`                                      | removed, a Node.js stream already is a `Body`                                                           |
-| no way to notice a disconnected client                           | `request.signal`, aborted when the request is no longer needed                                          |
-| `ServerRequest`, `Handler`, `Middleware` with untyped attributes | `ServerRequest<A>`, `Handler<A>`, `Middleware<I, O>` with typed attributes                              |
-| -                                                                | new: `Headers`, `Body`, `Attributes`, the helper types and `pipe`                                       |
+| 3.x                                                              | 4.x                                                                                                   |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| node >= 18                                                       | node >= 22                                                                                            |
+| `import … from '@chubbyts/chubbyts-http-types/dist/message'`     | `import … from '@chubbyts/chubbyts-http-types/message'` (without `dist/`)                             |
+| `uri.schema`                                                     | `uri.scheme` (like PSR-7 `getScheme()`)                                                               |
+| `statusMap.get(status)`                                          | `STATUS_CODES[status]` from `node:http`                                                               |
+| mutable messages                                                 | all properties `readonly`, e.g. `withAttribute(request, 'userId', 'user-1')` instead of an assignment |
+| `Method` limited to `CONNECT`, `DELETE`, `GET`, … `TRACE`        | any method, the known ones get autocompleted                                                          |
+| `Query` arrays contain only nested queries                       | `Query` arrays contain strings and nested queries (`key[]=value`)                                     |
+| `uri.query` parsed (`Query`)                                     | `uri.query` raw string, use `requestHelpers.getQueryParams` and `withQueryParams`                     |
+| `body` is a `Duplex`, a handler writes into `response.body`      | `body` is an `AsyncIterable<Uint8Array>`, a handler sets it with `withBody(response, bodyFactory(…))` |
+| `StreamFromResourceFactory`                                      | removed, a Node.js stream already is a `Body`                                                         |
+| `StreamFactory`, `StreamFromFileFactory`                         | `BodyFactory`, `BodyFromFileFactory` (the old names are deprecated aliases)                           |
+| no way to notice a disconnected client                           | `request.signal`, aborted when the request is no longer needed                                        |
+| `ServerRequest`, `Handler`, `Middleware` with untyped attributes | `ServerRequest<A>`, `Handler<A>`, `Middleware<I, O>` with typed attributes                            |
+| -                                                                | new: `Headers`, `Body`, `Attributes`, the helper types and `pipe`                                     |
 
 ## Copyright
 
