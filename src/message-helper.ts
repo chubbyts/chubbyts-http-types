@@ -50,6 +50,12 @@ export type MessageHelpers = {
   readonly getHeaderLine: (message: Message, name: string) => string;
   readonly hasHeader: (message: Message, name: string) => boolean;
   readonly withHeader: <M extends Message>(message: M, name: string, value: HeaderValue) => M;
+  /**
+   * Sets multiple headers at once, like `withHeader` for each entry in order (other headers are kept), but copying the
+   * message only once (e.g. a bridge turning all headers of an incoming request into a message). Optional for the
+   * implementations of 4.x: fall back to `withHeader` for each entry if missing.
+   */
+  readonly withHeaders?: <M extends Message>(message: M, headers: Readonly<Record<string, HeaderValue>>) => M;
   readonly withAddedHeader: <M extends Message>(message: M, name: string, value: HeaderValue) => M;
   readonly withoutHeader: <M extends Message>(message: M, name: string) => M;
   /** Throws an error for a protocol version other than `1.0`, `1.1`, `2` or `3`. */
