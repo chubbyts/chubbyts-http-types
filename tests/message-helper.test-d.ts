@@ -31,6 +31,9 @@ describe('MessageHelpers', () => {
     expectTypeOf(messageHelpers.withHeader(request, 'accept', 'application/json')).toEqualTypeOf<
       ServerRequest<{ requestId: string }>
     >();
+    expectTypeOf(
+      messageHelpers.withHeaders?.(request, { accept: 'application/json', 'x-custom': ['value1', 'value2'] }),
+    ).toEqualTypeOf<ServerRequest<{ requestId: string }> | undefined>();
     expectTypeOf(messageHelpers.withAddedHeader(request, 'accept', ['text/html'])).toEqualTypeOf<
       ServerRequest<{ requestId: string }>
     >();

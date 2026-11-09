@@ -44,7 +44,7 @@ interchangeable, any implementation of the factories and helpers creates and cha
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-http-types][1].
 
 ```sh
-npm i @chubbyts/chubbyts-http-types@^4.2.2
+npm i @chubbyts/chubbyts-http-types@^4.3.0
 ```
 
 ## Usage
@@ -125,6 +125,7 @@ these rules, so middlewares work with whichever gets injected:
 | `getHeaderLine`       | `(message, name) => string`                | values joined with `', '`, empty string if missing, throws for `set-cookie` |
 | `hasHeader`           | `(message, name) => boolean`               |                                                                             |
 | `withHeader`          | `(message, name, value) => message`        | replaces the values                                                         |
+| `withHeaders`         | `(message, headers) => message`            | optional, like `withHeader` for each entry, copying the message only once   |
 | `withAddedHeader`     | `(message, name, value) => message`        | appends to the existing values                                              |
 | `withoutHeader`       | `(message, name) => message`               |                                                                             |
 | `withProtocolVersion` | `(message, protocolVersion) => message`    | throws for other than `1.0`, `1.1`, `2` or `3`                              |
